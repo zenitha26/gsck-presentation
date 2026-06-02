@@ -1,11 +1,12 @@
 import { io } from 'socket.io-client';
 
-const socketUrl = import.meta.env.VITE_SOCKET_URL || window.location.origin;
+// Always connect to the backend Railway URL from environment or fallback
+const socketUrl = import.meta.env.VITE_SOCKET_URL || 'https://gsck-presentation-production.up.railway.app';
 
 console.log(`[Socket Client] Instantiating socket connection to: ${socketUrl}`);
 
 export const socket = io(socketUrl, {
-  autoConnect: true,
+  transports: ['websocket', 'polling'],
   reconnection: true,
   reconnectionAttempts: Infinity,
   reconnectionDelay: 1000,
@@ -14,7 +15,7 @@ export const socket = io(socketUrl, {
 });
 
 socket.on('connect', () => {
-  console.log('[Socket Client] Connected to presentation server:', socket.id);
+  console.log('CONNECTED TO BACKEND:', socket.id);
   updateStatusIndicator(true);
 });
 
@@ -24,7 +25,7 @@ socket.on('disconnect', (reason) => {
 });
 
 socket.on('connect_error', (error) => {
-  console.error('[Socket Client] Connection error:', error);
+  console.error('CONNECTION ERROR:', error);
   updateStatusIndicator(false);
 });
 

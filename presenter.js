@@ -7,6 +7,15 @@ import { socket } from './shared/socket.js';
 
 document.documentElement.classList.add('js-ready');
 
+// Connection logs for debugging
+socket.on("connect", () => {
+  console.log("CONNECTED TO BACKEND:", socket.id);
+});
+
+socket.on("connect_error", (err) => {
+  console.error("CONNECTION ERROR:", err);
+});
+
 // Audio management state
 let isMuted = false;
 const audioCache = {};
@@ -126,12 +135,35 @@ function updateTimerDisplay() {
 
 // Authoritative sync broadcast
 function broadcastState() {
-  console.log('[Presenter Console] Broadcasting slide change:', Reveal.getIndices());
-  socket.emit("slidechange", {
+  const state = {
     indexh: Reveal.getIndices().h,
     indexv: Reveal.getIndices().v,
     fIndex: Reveal.getIndices().f || 0
-  });
+  };
+  console.log('[Presenter Console] Broadcasting slide change:', state);
+  socket.emit("slidechange", state);
+}
+
+// Dedicated trigger functions for buttons
+function nextSlide() {
+  Reveal.next();
+  broadcastState();
+}
+
+function prevSlide() {
+  Reveal.prev();
+  broadcastState();
+}
+
+function firstSlide() {
+  Reveal.slide(0);
+  broadcastState();
+}
+
+function lastSlide() {
+  const total = Reveal.getTotalSlides();
+  Reveal.slide(total - 1);
+  broadcastState();
 }
 
 // Extract Slide Notes & Next Slide Preview
@@ -287,7 +319,7 @@ function init() {
     margin: 0.02,
     controls: false,
     progress: false,
-    keyboard: false, // Turn off Reveal's built-in keyboard navigation so we can control broadcastState cleanly
+    keyboard: false,
     center: true,
     hash: false,
     transition: 'fade',
@@ -299,31 +331,30 @@ function init() {
     switch (e.key) {
       case "ArrowRight":
       case " ":
-        Reveal.next();
+        nextSlide();
         break;
       case "ArrowLeft":
-        Reveal.prev();
+        prevSlide();
         break;
       case "Home":
-        Reveal.slide(0);
+        firstSlide();
         break;
       case "End":
-        const total = Reveal.getTotalSlides();
-        Reveal.slide(total - 1);
+        lastSlide();
         break;
     }
-    broadcastState();
   });
 
-  // Setup Dashboard Controls
-  document.getElementById('btn-next')?.addEventListener('click', () => { Reveal.next(); broadcastState(); });
-  document.getElementById('btn-prev')?.addEventListener('click', () => { Reveal.prev(); broadcastState(); });
-  document.getElementById('btn-first')?.addEventListener('click', () => { Reveal.slide(0); broadcastState(); });
-  document.getElementById('btn-last')?.addEventListener('click', () => {
-    const total = Reveal.getTotalSlides();
-    Reveal.slide(total - 1);
-    broadcastState();
-  });
+  // Setup Dashboard Controls (Support both click and pointerup for mobile responsive click trigger)
+  const nextBtn = document.getElementById('btn-next');
+  const prevBtn = document.getElementById('btn-prev');
+  const firstBtn = document.getElementById('btn-first');
+  const lastBtn = document.getElementById('btn-last');
+
+  nextBtn?.addEventListener('click', nextSlide);
+  prevBtn?.addEventListener('click', prevSlide);
+  firstBtn?.addEventListener('click', firstSlide);
+  lastBtn?.addEventListener('click', lastSlide);
 
   // Timer Buttons
   document.getElementById('btn-timer-toggle')?.addEventListener('click', () => {
