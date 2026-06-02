@@ -1,7 +1,7 @@
 import { io } from 'socket.io-client';
 
 // Always connect to the backend Railway URL from environment or fallback
-const socketUrl = import.meta.env.VITE_SOCKET_URL || 'https://gsck-presentation-production.up.railway.app';
+const socketUrl = import.meta.env.VITE_SOCKET_URL || window.location.origin;
 
 console.log(`[Socket Client] Instantiating socket connection to: ${socketUrl}`);
 
