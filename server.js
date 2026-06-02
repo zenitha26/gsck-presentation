@@ -6,40 +6,36 @@ import cors from "cors";
 const app = express();
 const server = http.createServer(app);
 
+app.use(cors());
+
 const io = new Server(server, {
   cors: {
-    origin: "*",
-    methods: ["GET", "POST"]
+    origin: "*"
   }
 });
 
-let presentationState = {
+let state = {
   indexh: 0,
   indexv: 0,
   fIndex: 0
 };
 
 io.on("connection", (socket) => {
-  console.log("Client connected:", socket.id);
+  socket.emit("stateUpdate", state);
 
-  // send current state immediately
-  socket.emit("stateUpdate", presentationState);
-
-  // presenter sends slide updates
-  socket.on("slidechange", (state) => {
-    presentationState = state;
-
-    // broadcast to ALL audience clients
-    socket.broadcast.emit("stateUpdate", presentationState);
+  socket.on("slidechange", (data) => {
+    state = data;
+    socket.broadcast.emit("stateUpdate", state);
   });
 
-  // recovery sync (important for reconnect)
   socket.on("getCurrentState", () => {
-    socket.emit("stateUpdate", presentationState);
+    socket.emit("stateUpdate", state);
   });
 });
 
+// ❌ DO NOT USE app.get("*") IN EXPRESS 5
+
 const PORT = process.env.PORT || 3000;
 server.listen(PORT, () => {
-  console.log("Server running on port", PORT);
+  console.log("Server running on", PORT);
 });
